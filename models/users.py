@@ -10,20 +10,17 @@ class UserModel(db.Model):
     __tablename__ = 'user'      # initialize table
     id = db.Column(db.Integer, primary_key=True, nullable=False)        # generated id of the user
     username = db.Column(db.String(80), nullable=False)                 # the username chosen by the user
-    password = db.Column(db.String(80), nullable=False)                 # password of the user
-    created = db.Column(db.DateTime(timezone=True), server_default=db.func.now())   # created date of the user
+    password = db.Column(db.String(), nullable=False)                   # password of the user
+    created = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),
+                        nullable=False)                                 # created date of the category
     updated = db.Column(db.DateTime(timezone=True), server_default=db.func.now(),
-                        onupdate=db.func.now())                                     # updated date of the user
+                        onupdate=db.func.now(), nullable=False)         # updated date of the category
     items = db.relationship('ItemModel', lazy='dynamic')                            # items that the user created
 
     # initialization function
     def __init__(self, username, password):
         self.username = username                    # set username and password as given
         self.password = password
-
-    # return json with user id, name, and items created by user
-    def json(self):
-        return {'id': self.id, 'username': self.username, 'items': [item.json() for item in self.items.all()]}
 
     # find the user object by (unique) username
     @classmethod
@@ -44,3 +41,7 @@ class UserModel(db.Model):
     def delete_from_db(self):
         db.session.delete(self)                     # delete the user from database
         db.session.commit()                         # commit changes
+
+        # return json with user id, name, and items created by user
+        # def json(self):
+        #     return {'id': self.id, 'username': self.username, 'items': [item.json() for item in self.items.all()]}
