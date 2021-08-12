@@ -1,21 +1,49 @@
-from flask_jwt_extended.utils import get_jwt_identity
-from flask_jwt_extended.view_decorators import jwt_required
+from flask import request, jsonify
 from flask_restful import Resource, reqparse
-from flask_jwt_extended import create_access_token, create_refresh_token, get_jwt_identity, jwt_required
-from models.users import UserModel
+from marshmallow import ValidationError
 
-user_parser = reqparse.RequestParser()
+from models.users import UserModel
+from schemas.users import UserSchema
 
 
 class UserRegister(Resource):
     def post(self):
-        data = user_parser.parse_args()
+        data = request.json
+
+        if 'username' not in data:
+            return {'message': 'Lacking field username'}, 400
         if UserModel.find_by_username(data['username']):
             return {'message': 'Username already exists'}, 400
+
         user = UserModel(**data)
+        user_schema = UserSchema()
+
+        try:
+            user_schema.load(data)
+        except ValidationError as err:
+            return err.messages
+
         try:
             user.save_to_db()
         except:
-            {'message': 'Internal error, user was not created'}, 500
+            return {'message': 'Internal error, user not created'}, 500
+
         return {'message': 'User created successfully'}, 201
 
+
+# class User(Resource):
+#     @classmethod
+#     def get(cls, user_id):
+#         user = UserModel.find_by_id(user_id)
+#         if not user:
+#             return {'message': 'User not found!'}, 404
+#         user_schema = UserSchema()
+#         return user_schema.dump(user)
+#
+#     @classmethod
+#     def delete(cls, user_id):
+#         user = UserModel.find_by_id(user_id)
+#         if not user:
+#             return {'message': 'User not found!'}, 404
+#         user.delete_from_db()
+#         return {'message': 'User successfully deleted.'}, 200
