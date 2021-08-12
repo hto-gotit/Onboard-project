@@ -10,18 +10,16 @@ class UserRegister(Resource):
     def post(self):
         data = request.json
 
-        if 'username' not in data:
-            return {'message': 'Lacking field username'}, 400
-        if UserModel.find_by_username(data['username']):
-            return {'message': 'Username already exists'}, 400
-
-        user = UserModel(**data)
         user_schema = UserSchema()
-
         try:
             user_schema.load(data)
         except ValidationError as err:
             return err.messages
+
+        if UserModel.find_by_username(data['username']):
+            return {'message': 'Username already exists'}, 400
+
+        user = UserModel(**data)
 
         try:
             user.save_to_db()
