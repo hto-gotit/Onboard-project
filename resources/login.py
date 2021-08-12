@@ -25,7 +25,7 @@ class UserLogin(Resource):
                 return {'message': 'Internal error, login unsuccessful'}
         return {'message': 'Invalid password'}, 400                      # Otherwise, password is wrong
 
-
+    
 # Function to verify user request password for login and hashed password in the database
 def verify_password(password, database_hash):
     pass_bytes = password.encode()                      # encode the request password
