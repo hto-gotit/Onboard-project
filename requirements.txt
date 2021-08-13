@@ -3,4 +3,7 @@ Flask-JWT-Extended
 Flask-RESTful
 Flask-SQLAlchemy
 pymysql
+bcrypt
 Marshmallow
+pytest
+requests
