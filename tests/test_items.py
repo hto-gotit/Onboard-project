@@ -45,10 +45,14 @@ def test_manage_item(user_for_manage):
     }
 
     # Log the users in
-    user1data = {'username': user1.username,
-                 'password': user1.password}
-    user2data = {'username': user2.username,
-                 'password': user2.password}
+    user1data = {
+        'username': user1.username,
+        'password': user1.password
+    }
+    user2data = {
+        'username': user2.username,
+        'password': user2.password
+    }
     response_login = requests.post(url_login,
                                    data=json.dumps(user1data),
                                    headers=mock_request_headers)
@@ -67,12 +71,18 @@ def test_manage_item(user_for_manage):
     }
 
     # Create some items
-    item1 = {'name': 'item1', 'description': 'desc1',
-             'category_id': 1, 'user_id': 2}
-    item2 = {'name': 'item2', 'description': 'desc2',
-             'category_id': 1, 'user_id': 2}
-    item_invalid_cate = {'name': 'item_in', 'description': 'desc',
-                         'category_id': 1000, 'user_id': 2}
+    item1 = {
+        'name': 'item1', 'description': 'desc1',
+        'category_id': 1, 'user_id': 2
+    }
+    item2 = {
+        'name': 'item2', 'description': 'desc2',
+        'category_id': 1, 'user_id': 2
+    }
+    item_invalid_cate = {
+        'name': 'item_in', 'description': 'desc',
+         'category_id': 1000, 'user_id': 2
+    }
 
     # Create item test successes
     response_create_1 = requests.post(url_list_items.format(1),
@@ -105,8 +115,12 @@ def test_manage_item(user_for_manage):
     assert resp_del_creator.status_code == 200
 
     # Edit the info of item 1
-    item1edit = {'name': 'item1 changed', 'description': 'desc1',
-                 'category_id': 2, 'user_id': 2}
+    item1edit = {
+        'name': 'item1 changed', 
+        'description': 'desc1',
+        'category_id': 2, 
+        'user_id': 2
+    }
     # Edit item fails (not creator, invalid category, item not found)
     resp_edit_no_category = requests.put(url_item.format(2021, 1),
                                          data=json.dumps(item_invalid_cate),
@@ -177,7 +191,7 @@ def test_get_item():
     response_get_list = requests.get(url_list_items.format(100))
     assert response_get_list.status_code == 404
 
-    # Get a valid item (created in the above test)
+    # Get a valid item (created above)
     response_get_item = requests.get(url_item.format(1, 1))
     assert response_get_item.status_code == 200
 
