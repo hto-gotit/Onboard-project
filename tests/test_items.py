@@ -81,7 +81,7 @@ def test_manage_item(user_for_manage):
     }
     item_invalid_cate = {
         'name': 'item_in', 'description': 'desc',
-         'category_id': 1000, 'user_id': 2
+        'category_id': 1000, 'user_id': 2
     }
 
     # Create item test successes
@@ -116,9 +116,9 @@ def test_manage_item(user_for_manage):
 
     # Edit the info of item 1
     item1edit = {
-        'name': 'item1 changed', 
+        'name': 'item1 changed',
         'description': 'desc1',
-        'category_id': 2, 
+        'category_id': 2,
         'user_id': 2
     }
     # Edit item fails (not creator, invalid category, item not found)
