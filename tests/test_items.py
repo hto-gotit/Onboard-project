@@ -66,7 +66,7 @@ def test_manage_item(user_for_manage):
         'Content-Type': 'application/json'
     }
 
-    # Create some items, user_id = 2 since test_auth already created user1
+    # Create some items
     item1 = {'name': 'item1', 'description': 'desc1',
              'category_id': 1, 'user_id': 2}
     item2 = {'name': 'item2', 'description': 'desc2',
@@ -177,7 +177,7 @@ def test_get_item():
     response_get_list = requests.get(url_list_items.format(100))
     assert response_get_list.status_code == 404
 
-    # Get a valid item (created above)
+    # Get a valid item (created in the above test)
     response_get_item = requests.get(url_item.format(1, 1))
     assert response_get_item.status_code == 200
 
