@@ -1,0 +1,37 @@
+import pytest
+import requests
+import json
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+
+
+from models.users import UserModel
+from models.items import ItemModel
+from models.categories import CategoryModel
+
+
+# Test get the list of categories
+def test_get_categories():
+    # Setup
+    url = 'http://127.0.0.1:5000/categories'
+    response = requests.get(url)
+
+    # The default categories hard-coded with creating the tables
+    expected = [
+        {
+            "id": 1,
+            "name": "First category"
+        },
+        {
+            "id": 2,
+            "name": "Second category"
+        },
+        {
+            "id": 3,
+            "name": "Third category"
+        }
+    ]
+
+    # Successful get
+    assert response.json() == expected
+    assert response.status_code == 200
