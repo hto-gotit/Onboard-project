@@ -1,5 +1,7 @@
-from db import db   # import SQLAlchemy
-import bcrypt       # import bcrypt
+# SQLAlchemy
+from db import db
+# function to encrypt given password
+from utilities import bcrypt_hash
 
 
 # The model for the user. The 'user' database holds 5 columns:
@@ -58,13 +60,4 @@ class UserModel(db.Model):
         # def json(self):
         #     return {'id': self.id, 'username': self.username,
         #     'items': [item.json() for item in self.items.all()]}
-
-
-# Function to hash a given password, using bcrypt hash functions
-def bcrypt_hash(password):
-    # Encode the raw password
-    pass_bytes = password.encode()
-    # Hash the encoded and use a generated salt
-    pass_hash_bytes = bcrypt.hashpw(pass_bytes, bcrypt.gensalt(14))
-    # return hashed password
-    return pass_hash_bytes.decode()
+        
