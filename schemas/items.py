@@ -27,6 +27,9 @@ class ItemSchema(Schema):
             raise ValidationError("Length of Item name must be > 0.")
         if len(value) > 49:
             raise ValidationError("Length of Item name must be < 50.")
+        if value[0] == ' ' or value[-1] == ' ':
+            raise ValidationError("Item name cannot have space in the "
+                                  "beginning and the end")
 
     # Function to validate the description of the item
     @validates("description")
