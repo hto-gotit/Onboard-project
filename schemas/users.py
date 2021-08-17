@@ -17,6 +17,9 @@ class UserSchema(Schema):
             raise ValidationError("Username's length must be > 0.")
         if len(value) > 79:
             raise ValidationError("Username's length must be < 80.")
+        if value[0] == ' ' or value[-1] == ' ':
+            raise ValidationError("Username cannot have empty space in the "
+                                  "beginning and the end")
 
     # Function to validate the password of the account
     @validates("password")
@@ -28,3 +31,6 @@ class UserSchema(Schema):
             raise ValidationError("Password's length must be > 0.")
         if len(value) > 79:
             raise ValidationError("Password's length must be < 80.")
+        if value[0] == ' ' or value[-1] == ' ':
+            raise ValidationError("Username cannot have space in the "
+                                  "beginning and the end")
