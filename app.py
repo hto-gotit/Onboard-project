@@ -1,35 +1,80 @@
+# SQLAlchemy exceptions
 import sqlalchemy.exc
-from flask import Flask                               # import Flask class
-from flask_restful import Api                         # import restful API
-from flask_jwt_extended import JWTManager             # import JWT manager
+# Flask class & json functions
+from flask import Flask, json
+# restful API
+from flask_restful import Api
+# JWT manager
+from flask_jwt_extended import JWTManager
+# Http exceptions
+from werkzeug.exceptions import HTTPException
+# Handle command line arguments
+import argparse
 
-# import resource to register
+# resource to register
 from resources.users import UserRegister
-# import User resource (not available to users)
-# from resources.users import User
-# import resource to login
+# resource to login
 from resources.login import UserLogin
-# import all item-related resource
-from resources.items import Item, ItemList, ItemLatests
-# import resource to get all categories
+# all item-related resource
+from resources.items import Item, CategoryItems, AllItems
+# resource to get all categories
 from resources.categories import CategoryList
-# import Category resource (not available to users)
-# from resources.categories import Category
+# category models to create default category
 from models.categories import CategoryModel
 
 # Instantiate the Flask application
 app = Flask(__name__)
-# path to database
+# Commandline argument parser
+ap = argparse.ArgumentParser()
+ap.add_argument("-env", "--environment",
+                required=True,
+                help="sepcify the environment of the app: "
+                     "test, develop, or production")
+args = vars(ap.parse_args())
+
+# Use configuration according to environment
+if args['environment'] == 'test':
+    from config import config_test
+    configFile = config_test
+elif args['environment'] == 'develop':
+    from config import config_develop
+    configFile = config_develop
+else:
+    from config import config_production
+    configFile = config_production
+
+# database credential
 app.config['SQLALCHEMY_DATABASE_URI'] \
-    = 'mysql+pymysql://root:Password1!@localhost/catalogdb'
-# Disable tracking modifications
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-# Enable tracking exceptions
-app.config['PROPAGATE_EXCEPTIONS'] = True
+    = 'mysql+pymysql://{}:{}@{}/{}'.format(configFile.mySQLusername,
+                                           configFile.mySQLpassword,
+                                           configFile.host,
+                                           configFile.dbname)
+# Track modifications
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS']\
+    = configFile.trackModification
 # Secret key for app
-app.secret_key = 'SecRetPassWord123*()'
+app.secret_key = configFile.secretKey
 # Instantiate the API
 api = Api(app)
+
+
+# Handle HTTP Exceptions
+@app.errorhandler(HTTPException)
+def handle_exception(e):
+    response = e.get_response()
+    response.data = json.dumps({
+        'status code': e.code,
+        'name': e.name,
+        'description': e.description,
+    })
+    response.content_type = "application/json"
+    return response
+
+
+# Handle all Exceptions
+@app.errorhandler(Exception)
+def internal_server_error_500(e):
+    return {'message': 'Internal Server Error', 'error': e.args[0]}, 500
 
 
 @app.before_first_request               # Create all tales in database
@@ -48,20 +93,24 @@ def create_tables():
         pass
 
 
-jwt = JWTManager(app)                   # Instantiate the JWT manager
+# Instantiate the JWT manager
+jwt = JWTManager(app)
 
 # Declare all the Resources for the API
 api.add_resource(CategoryList, '/categories')
 # api.add_resource(Category, '/categories/<int:category_id>')
-api.add_resource(ItemList, '/categories/<int:category_id>/items')
+api.add_resource(CategoryItems, '/categories/<int:category_id>/items')
 api.add_resource(Item, '/categories/<int:category_id>/items/<int:item_id>')
-api.add_resource(ItemLatests, '/items')
+api.add_resource(AllItems, '/items')
 api.add_resource(UserRegister, '/users')
 # api.add_resource(User, '/user/<int:user_id>')
 api.add_resource(UserLogin, '/auth/login')
 
 # if running in main
 if __name__ == '__main__':
-    from db import db                       # import SQLAlchemy
-    db.init_app(app)                        # Instantiate the database
-    app.run(port=5000, debug=True)          # Run application
+    # SQLAlchemy
+    from db import db
+    # Instantiate the database
+    db.init_app(app)
+    # Run application
+    app.run(port=configFile.port, debug=configFile.debug)
