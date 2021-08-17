@@ -15,9 +15,6 @@ class UserLogin(Resource):
     @classmethod
     @user_request_validate
     def post(cls, data):
-        if 'username' not in data:
-            # return 400 if the request does not have username key
-            return {'message': 'Lacking field username'}, 400
         # get the user from database
         user = UserModel.find_by_username(data['username'])
         if user and verify_password(data['password'], user.password):
