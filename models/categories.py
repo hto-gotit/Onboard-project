@@ -1,4 +1,5 @@
-from db import db       # import SQLAlchemy
+# SQLAlchemy
+from db import db
 
 
 # The model for the category. The 'category' database holds 4 columns:
