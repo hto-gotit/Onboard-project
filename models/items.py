@@ -1,4 +1,5 @@
-from db import db       # import SQLAlchemy
+# SQLAlchemy
+from db import db
 
 
 # The model for the item. The 'item' database holds 7 columns: id, name,
@@ -52,10 +53,20 @@ class ItemModel(db.Model):
     def find_by_id(cls, item_id):
         return cls.query.filter_by(id=item_id).first()
 
+    # find items in a category by name
+    @classmethod
+    def find_by_category_and_name(cls, category_id, item_name):
+        return cls.query.filter_by(category_id=category_id,
+                                   name=item_name).first()
+
     # find all of the items
     @classmethod
-    def find_all(cls):
-        return cls.query.all()
+    def find_all(cls, limit, skip, order):
+        if order == 'asc':
+            return cls.query.offset(skip).limit(limit).all()
+        elif order == 'desc':
+            return cls.query.order_by(db.text('-id')).\
+                offset(skip).limit(limit).all()
 
     # save item to database
     def save_to_db(self):
