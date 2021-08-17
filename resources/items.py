@@ -118,7 +118,7 @@ class CategoryItems(Resource):
     def post(self, category_id, data, item_schema):
         category = CategoryModel.find_by_id(category_id)
         if not category:
-            return {'message': 'There is no such category'}, 400
+            return {'message': 'There is no such category'}, 404
         user_id = get_jwt_identity()       # Get the id of the requesting user
         if ItemModel.find_by_category_and_name(category_id, data['name']):
             return {'message': 'Item name already exists in category'}, 400
