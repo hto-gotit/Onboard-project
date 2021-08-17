@@ -22,7 +22,7 @@ class Item(Resource):
     def get(cls, category_id, item_id):
         if not CategoryModel.find_by_id(category_id):
             # return 404 if item's category not found
-            return {'message': 'There is no such category'}, 400
+            return {'message': 'There is no such category'}, 404
         # find the item in the database
         item = ItemModel.find_by_id(item_id)
         if item is None or item.category_id != category_id:
@@ -39,7 +39,7 @@ class Item(Resource):
     def delete(self, category_id, item_id):
         if not CategoryModel.find_by_id(category_id):
             # return 404 if item's category not found
-            return {'message': 'There is no such category'}, 400
+            return {'message': 'There is no such category'}, 404
 
         # find the item in the database
         item = ItemModel.find_by_id(item_id)
@@ -64,7 +64,7 @@ class Item(Resource):
     def put(self, category_id, item_id, data, item_schema):
         if not CategoryModel.find_by_id(category_id):
             # return 404 if item's category not found
-            return {'message': 'There is no such category'}, 400
+            return {'message': 'There is no such category'}, 404
 
         # find the item in the database
         item = ItemModel.find_by_id(item_id)
