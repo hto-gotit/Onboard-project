@@ -8,3 +8,4 @@ Marshmallow
 pytest
 requests
 sqlalchemy
+werkzeug
