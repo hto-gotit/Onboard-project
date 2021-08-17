@@ -1,41 +1,32 @@
-from flask import request                   # import flask request
-from flask_restful import Resource          # import resource from restful
-# import class to raise errors for marshmallow
-from marshmallow import ValidationError
+# resource from restful
+from flask_restful import Resource
 
-from models.users import UserModel          # import model for user
-from schemas.users import UserSchema        # import schema for user
+# model for user
+from models.users import UserModel
+# decorator for validating request
+from utilities import user_request_validate
 
 
 # /users resource, used only for registering a new user
 class UserRegister(Resource):
     # Function to create a new user
     @classmethod
-    def post(cls):
-        data = request.json                     # fetch the info of the request
-        user_schema = UserSchema()              # declare the schema for user
-        try:
-            user_schema.load(data)              # validate the request
-        except ValidationError as err:
-            return err.messages
-
+    @user_request_validate
+    def post(cls, data):
         if UserModel.find_by_username(data['username']):
             # if username already existed, return 400
             return {'message': 'Username already exists'}, 400
 
-        user = UserModel(**data)     # username available, create a new user
-
-        try:
-            user.save_to_db()        # save the user to the database
-        except:
-            return {'message': 'Internal error, user not created'}, 500
+        # username available, create a new user
+        user = UserModel(data['username'], data['password'])
+        user.save_to_db()        # save the user to the database
 
         return {'message': 'User created successfully'}, 201
 
 
 # /user/user_id resource (Not available to users)
 # class User(Resource):
-#     # Function to get id and usernam of an user
+#     # Function to get id and username of an user
 #     @classmethod
 #     def get(cls, user_id):
 #         user = UserModel.find_by_id(user_id)
