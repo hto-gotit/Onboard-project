@@ -55,9 +55,3 @@ class UserModel(db.Model):
     def delete_from_db(self):
         db.session.delete(self)               # delete the user from database
         db.session.commit()                   # commit changes
-
-        # return json with user id, name, and items created by user
-        # def json(self):
-        #     return {'id': self.id, 'username': self.username,
-        #     'items': [item.json() for item in self.items.all()]}
-        
