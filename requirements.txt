@@ -9,3 +9,5 @@ pytest
 requests
 sqlalchemy
 werkzeug
+cryptography
+alembic
