@@ -121,8 +121,8 @@ class CategoryItems(Resource):
             abort(404)
         user_id = get_jwt_identity()       # Get the id of the requesting user
         if ItemModel.find_by_category_and_name(category_id, data['name']):
-            abort(400)
-
+            abort(400, description='Item name already exists in this category')
+            
         item_name = data['name']
         if 'description' in data:
             item_desc = data['description']
