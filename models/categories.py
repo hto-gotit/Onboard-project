@@ -51,11 +51,3 @@ class CategoryModel(db.Model):
     def delete_from_db(self):
         db.session.delete(self)             # delete the category from database
         db.session.commit()                 # commit changes
-
-        # return json with category id, name, created and updated date,
-        # and items belonging to the category.
-        # def json(self):
-        #     return {'id': self.id, 'name': self.name,
-        #             'create': str(self.created),
-        #             'update': str(self.updated),
-        #             'items': [item.json() for item in self.items.all()]}
