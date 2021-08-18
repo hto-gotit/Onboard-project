@@ -1,200 +1,398 @@
 import pytest
-import requests
+from flask_restful import Api
+from flask_jwt_extended import JWTManager
 import json
+from flask import Flask
 
 from models.users import UserModel
 from models.items import ItemModel
 from models.categories import CategoryModel
+from db import db
+
+from resources.items import Item, AllItems, CategoryItems
+from resources.users import UserRegister
+from resources.login import UserLogin
 
 
-# Create some users for use in item managing
+@pytest.fixture(autouse=True)
+def client():
+    app = Flask(__name__)
+    app.config.from_envvar('ENV')
+    client = app.test_client()
+    db.init_app(app)
+    with app.app_context():
+        db.drop_all()
+        db.create_all()
+        cat1 = CategoryModel("First category")
+        cat2 = CategoryModel("Second category")
+        cat1.save_to_db()
+        cat2.save_to_db()
+
+    api = Api(app)
+    api.add_resource(CategoryItems, '/categories/<int:category_id>/items')
+    api.add_resource(Item, '/categories/<int:category_id>/items/<int:item_id>')
+    api.add_resource(AllItems, '/items')
+    api.add_resource(UserRegister, '/users')
+    api.add_resource(UserLogin, '/auth/login')
+    jwt = JWTManager(app)
+    return client
+
+
 @pytest.fixture()
-def user_for_manage():
-    url = 'http://127.0.0.1:5000/users'
-    mock_request_headers = {
-        'Content-Type': 'application/json'
+def login_helper(client):
+    url = '/users'
+    client.post(url,
+                           data=json.dumps(dict(username='user1',
+                                                password='pass1')),
+                           content_type='application/json')
+    url = '/auth/login'
+    response = client.post(url,
+                           data=json.dumps(dict(username='user1',
+                                                password='pass1')),
+                           content_type='application/json')
+    access_token = response.get_json()['access_token']
+    return access_token
+
+
+def help_creating_item(item_name, url, client, access_token):
+    response = client.post(url,
+                           data=json.dumps(dict(name=item_name,
+                                                description='description1')),
+                           content_type='application/json',
+                           headers={"Authorization":
+                                        "Bearer {}".format(access_token)})
+    return response
+
+
+def test_create_item_success(client, login_helper):
+    url = '/categories/1/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 201
+
+
+def test_create_item_invalid_category(client, login_helper):
+    url = '/categories/1000/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 404
+
+
+def test_create_item_duplicate_name(client, login_helper):
+    url = '/categories/1/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 201
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 400
+
+
+def test_edit_item_success(client, login_helper):
+    url = '/categories/1/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 201
+    url1 = '/categories/1/items/1'
+    response = client.put(url1,
+                          data=json.dumps(dict(name='Item1',
+                                               description='description1',
+                                               category_id=2)),
+                          content_type='application/json',
+                          headers={"Authorization":
+                                   "Bearer {}".format(login_helper)})
+    assert response.status_code == 200
+    assert response.get_json()['category_id'] == 2
+
+
+def test_edit_item_invalid_category(client, login_helper):
+    url1 = '/categories/100/items/1'
+    response = client.put(url1,
+                          data=json.dumps(dict(name='Item1',
+                                               description='description1',
+                                               category_id=2)),
+                          content_type='application/json',
+                          headers={"Authorization":
+                                   "Bearer {}".format(login_helper)})
+    assert response.status_code == 404
+
+
+def test_edit_item_invalid_item(client, login_helper):
+    url1 = '/categories/1/items/100'
+    response = client.put(url1,
+                          data=json.dumps(dict(name='Item1',
+                                               description='description1',
+                                               category_id=2)),
+                          content_type='application/json',
+                          headers={"Authorization":
+                                   "Bearer {}".format(login_helper)})
+    assert response.status_code == 404
+
+
+def test_edit_item_duplicate_name(client, login_helper):
+    url = '/categories/1/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 201
+
+    url = '/categories/2/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 201
+
+    url1 = '/categories/1/items/1'
+    response = client.put(url1,
+                          data=json.dumps(dict(name='Item1',
+                                               description='description1',
+                                               category_id=2)),
+                          content_type='application/json',
+                          headers={"Authorization":
+                                   "Bearer {}".format(login_helper)})
+    assert response.status_code == 400
+    assert response.get_json() == {'message': 'Item name already exists '
+                                              'in destination category'}
+
+
+def test_edit_item_not_creator(client, login_helper):
+    url = '/categories/1/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 201
+
+    url = '/users'
+    client.post(url,
+                data=json.dumps(dict(username='user2',
+                                     password='pass2')),
+                content_type='application/json')
+    url = '/auth/login'
+    response = client.post(url,
+                           data=json.dumps(dict(username='user2',
+                                                password='pass2')),
+                           content_type='application/json')
+    access_token2 = response.get_json()['access_token']
+
+    url1 = '/categories/1/items/1'
+    response = client.put(url1,
+                          data=json.dumps(dict(name='Item1',
+                                               description='description1',
+                                               category_id=2)),
+                          content_type='application/json',
+                          headers={"Authorization":
+                                   "Bearer {}".format(access_token2)})
+    assert response.status_code == 403
+
+
+def test_delete_item_success(client, login_helper):
+    url = '/categories/1/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 201
+    url1 = '/categories/1/items/1'
+    response = client.delete(url1,
+                             headers={"Authorization":
+                                          "Bearer {}".format(login_helper)})
+    assert response.status_code == 200
+    assert response.get_json() == {'message': 'Item deleted'}
+
+
+def test_delete_item_invalid_category(client, login_helper):
+    url1 = '/categories/9999/items/1'
+    response = client.delete(url1,
+                            headers={"Authorization":
+                                     "Bearer {}".format(login_helper)})
+    assert response.status_code == 404
+
+
+def test_delete_item_is_none(client, login_helper):
+    url1 = '/categories/1/items/1000'
+    response = client.delete(url1,
+                            headers={"Authorization":
+                                     "Bearer {}".format(login_helper)})
+    assert response.status_code == 404
+
+
+def test_delete_item_different_category(client, login_helper):
+    url = '/categories/1/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 201
+
+    url1 = '/categories/2/items/1'
+    response = client.delete(url1,
+                            headers={"Authorization":
+                                     "Bearer {}".format(login_helper)})
+    assert response.status_code == 404
+
+
+def test_delete_item_not_creator(client, login_helper):
+    url = '/categories/1/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 201
+
+    url = '/users'
+    client.post(url,
+                data=json.dumps(dict(username='user2',
+                                     password='pass2')),
+                content_type='application/json')
+    url = '/auth/login'
+    response = client.post(url,
+                           data=json.dumps(dict(username='user2',
+                                                password='pass2')),
+                           content_type='application/json')
+    access_token2 = response.get_json()['access_token']
+
+    url1 = '/categories/1/items/1'
+    response = client.delete(url1,
+                          headers={"Authorization":
+                                   "Bearer {}".format(access_token2)})
+    assert response.status_code == 403
+
+
+def test_get_items_from_category_success(client, login_helper):
+    url = '/categories/1/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+
+    assert response.status_code == 201
+    response = client.get(url)
+    assert response.status_code == 200
+    expected = [
+        {
+            "id": 1,
+            "name": "Item1",
+            "description": "description1",
+            "category_id": 1,
+            "user_id": 1
+        }
+    ]
+    assert response.get_json() == expected
+
+
+def test_get_items_from_invalid_category(client):
+    url = '/categories/100/items'
+    response = client.get(url)
+    assert response.status_code == 404
+
+
+def test_get_specific_item_success(client, login_helper):
+    url = '/categories/1/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 201
+    url = '/categories/1/items/1'
+    response = client.get(url)
+    expected = {
+            "id": 1,
+            "name": "Item1",
+            "description": "description1",
+            "category_id": 1,
+            "user_id": 1
     }
-    user_login1 = UserModel("user_login1", "pass1")
-    mock_request_data = {
-        'username': user_login1.username,
-        'password': user_login1.password
-    }
-    requests.post(url, data=json.dumps(mock_request_data),
-                  headers=mock_request_headers)
-    user_login2 = UserModel("user_login2", "pass2")
-    mock_request_data = {
-        'username': user_login2.username,
-        'password': user_login2.password
-    }
-    requests.post(url, data=json.dumps(mock_request_data),
-                  headers=mock_request_headers)
-
-    return user_login1, user_login2
+    assert response.status_code == 200
+    assert response.get_json() == expected
 
 
-# Test managing items
-def test_manage_item(user_for_manage):
-    # Setup
-    user1, user2 = user_for_manage
-    url_list_items = 'http://127.0.0.1:5000/categories/{}/items'
-    url_item = 'http://127.0.0.1:5000/categories/{}/items/{}'
-    url_login = 'http://127.0.0.1:5000/auth/login'
-
-    mock_request_headers = {
-        'Content-Type': 'application/json'
-    }
-
-    # Log the users in
-    user1data = {
-        'username': user1.username,
-        'password': user1.password
-    }
-    user2data = {
-        'username': user2.username,
-        'password': user2.password
-    }
-    response_login = requests.post(url_login,
-                                   data=json.dumps(user1data),
-                                   headers=mock_request_headers)
-    access_token_1 = response_login.json()['access_token']
-    response_login_2 = requests.post(url_login,
-                                     data=json.dumps(user2data),
-                                     headers=mock_request_headers)
-    access_token_2 = response_login_2.json()['access_token']
-    request_headers_manage_1 = {
-        'Authorization': 'Bearer {}'.format(access_token_1),
-        'Content-Type': 'application/json'
-    }
-    request_headers_manage_2 = {
-        'Authorization': 'Bearer {}'.format(access_token_2),
-        'Content-Type': 'application/json'
-    }
-
-    # Create some items
-    item1 = {
-        'name': 'item1', 'description': 'desc1',
-        'category_id': 1, 'user_id': 2
-    }
-    item2 = {
-        'name': 'item2', 'description': 'desc2',
-        'category_id': 1, 'user_id': 2
-    }
-    item_invalid_cate = {
-        'name': 'item_in', 'description': 'desc',
-        'category_id': 1000, 'user_id': 2
-    }
-
-    # Create item test successes
-    response_create_1 = requests.post(url_list_items.format(1),
-                                      data=json.dumps(item1),
-                                      headers=request_headers_manage_1)
-    response_create_2 = requests.post(url_list_items.format(1),
-                                      data=json.dumps(item2),
-                                      headers=request_headers_manage_1)
-    assert response_create_1.status_code == 201
-    assert response_create_1.json()['id'] == 1
-    assert response_create_2.status_code == 201
-    assert response_create_2.json()['id'] == 2
-
-    # Create item test fail
-    response_create_invalid = requests.post(url_list_items.format(1000),
-                                            data=json.dumps(item_invalid_cate),
-                                            headers=request_headers_manage_1)
-    assert response_create_invalid.status_code == 400
-    assert response_create_invalid.json() \
-           == {'message': 'There is no such category'}
-
-    # Delete item test fail
-    resp_del_not_creator = requests.delete(url_item.format(1, 2),
-                                           headers=request_headers_manage_2)
-    assert resp_del_not_creator.status_code == 403
-
-    # Delete item test success
-    resp_del_creator = requests.delete(url_item.format(1, 2),
-                                       headers=request_headers_manage_1)
-    assert resp_del_creator.status_code == 200
-
-    # Edit the info of item 1
-    item1edit = {
-        'name': 'item1 changed',
-        'description': 'desc1',
-        'category_id': 2,
-        'user_id': 2
-    }
-    # Edit item fails (not creator, invalid category, item not found)
-    resp_edit_no_category = requests.put(url_item.format(2021, 1),
-                                         data=json.dumps(item_invalid_cate),
-                                         headers=request_headers_manage_1)
-    assert resp_edit_no_category.status_code == 400
-    resp_edit_no_item = requests.put(url_item.format(1, 9000),
-                                     data=json.dumps(item1edit),
-                                     headers=request_headers_manage_1)
-    assert resp_edit_no_item.status_code == 404
-    resp_edit_not_creator = requests.put(url_item.format(1, 1),
-                                         data=json.dumps(item1edit),
-                                         headers=request_headers_manage_2)
-    assert resp_edit_not_creator.status_code == 403
-    resp_edit_creator = requests.put(url_item.format(1, 1),
-                                     data=json.dumps(item1edit),
-                                     headers=request_headers_manage_1)
-
-    # Edit item success
-    assert resp_edit_creator.status_code == 200
-    assert resp_edit_creator.json()['name'] == "item1 changed"
-
-    # Fetch the list of latest items
-    url_latest = 'http://127.0.0.1:5000/items?limit={}&page={}&order={}'
-    url_latest_desc = url_latest.format(2, 1, 'desc')
-
-    requests.post(url_list_items.format(1),         # Recreate item 2
-                  data=json.dumps(item2),
-                  headers=request_headers_manage_1)
-
-    # Fetch the list in descending order
-    resp_get_latest = requests.get(url_latest_desc)
-    assert resp_get_latest.status_code == 200
-    assert resp_get_latest.json()[0]['name'] == 'item2'
-    assert resp_get_latest.json()[1]['name'] == 'item1 changed'
-
-    # Fetch the list in descending order but limit is to only 1 item
-    url_latest_limit = url_latest.format(1, 1, 'desc')
-    resp_get_latest_limit = requests.get(url_latest_limit)
-    assert resp_get_latest_limit.status_code == 200
-    try:
-        resp_get_latest_limit.json()[1]
-    except IndexError:
-        assert True
-        assert resp_get_latest_limit.json()[0]['name'] == 'item2'
-
-    # Fetch the list in ascending order
-    url_latest_asc = url_latest.format(2, 1, 'asc')
-    resp_get_latest_asc = requests.get(url_latest_asc)
-    assert resp_get_latest_asc.status_code == 200
-    assert resp_get_latest_asc.json()[0]['name'] == 'item1 changed'
-    assert resp_get_latest_asc.json()[1]['name'] == 'item2'
-
-    # Invalid ordering argument
-    url_latest_invalid = url_latest.format(2, 1, 'some_gibbrish')
-    resp_get_latest_invalid = requests.get(url_latest_invalid)
-    assert resp_get_latest_invalid.status_code == 400
+def test_get_specific_item_invalid_category(client):
+    url = '/categories/999/items/1'
+    response = client.get(url)
+    assert response.status_code == 404
 
 
-# Tests to get the items (individual) and item lists
-def test_get_item():
-    url_list_items = 'http://127.0.0.1:5000/categories/{}/items'
-    url_item = 'http://127.0.0.1:5000/categories/{}/items/{}'
-    # Get items from a valid category
-    response_get_list = requests.get(url_list_items.format(1))
-    assert response_get_list.status_code == 200
+def test_get_item_is_none(client):
+    url = '/categories/1/items/1'
+    response = client.get(url)
+    assert response.status_code == 404
 
-    # Get items from invalid category
-    response_get_list = requests.get(url_list_items.format(100))
-    assert response_get_list.status_code == 404
 
-    # Get a valid item (created above)
-    response_get_item = requests.get(url_item.format(1, 1))
-    assert response_get_item.status_code == 200
+def test_get_item_exist_different_category(client, login_helper):
+    url = '/categories/1/items'
+    response = help_creating_item('Item1', url, client, login_helper)
+    assert response.status_code == 201
+    url = '/categories/2/items/1'
+    response = client.get(url)
+    assert response.status_code == 404
 
-    # Get an invalid item
-    response_get_item = requests.get(url_item.format(1, 1990))
-    assert response_get_item.status_code == 404
+
+def test_get_latest_items_success_asc_all_1page(client, login_helper):
+    url = '/categories/1/items'
+    help_creating_item('Item1', url, client, login_helper)
+    help_creating_item('Item2', url, client, login_helper)
+    help_creating_item('Item3', url, client, login_helper)
+    url = '/items?limit=10&page=1&order=asc'
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.get_json()[0]['total_items'] == 3
+    assert response.get_json()[0]['items'][0]['id'] == 1
+
+
+def test_get_latest_items_success_desc_all_1page(client, login_helper):
+    url = '/categories/1/items'
+    help_creating_item('Item1', url, client, login_helper)
+    help_creating_item('Item2', url, client, login_helper)
+    help_creating_item('Item3', url, client, login_helper)
+    url = '/items?limit=10&page=1&order=desc'
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.get_json()[0]['total_items'] == 3
+    assert response.get_json()[0]['items'][0]['id'] == 3
+
+
+def test_get_latest_items_success_asc_1limit_1page(client, login_helper):
+    url = '/categories/1/items'
+    help_creating_item('Item1', url, client, login_helper)
+    help_creating_item('Item2', url, client, login_helper)
+    help_creating_item('Item3', url, client, login_helper)
+    url = '/items?limit=1&page=1&order=asc'
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.get_json()[0]['total_items'] == 1
+    assert response.get_json()[0]['items'][0]['id'] == 1
+
+
+def test_get_latest_items_success_desc_1limit_1page(client, login_helper):
+    url = '/categories/1/items'
+    help_creating_item('Item1', url, client, login_helper)
+    help_creating_item('Item2', url, client, login_helper)
+    help_creating_item('Item3', url, client, login_helper)
+    url = '/items?limit=1&page=1&order=desc'
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.get_json()[0]['total_items'] == 1
+    assert response.get_json()[0]['items'][0]['id'] == 3
+
+
+def test_get_latest_items_success_asc_1limit_2page(client, login_helper):
+    url = '/categories/1/items'
+    help_creating_item('Item1', url, client, login_helper)
+    help_creating_item('Item2', url, client, login_helper)
+    help_creating_item('Item3', url, client, login_helper)
+    url = '/items?limit=1&page=2&order=asc'
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.get_json()[0]['total_items'] == 1
+    assert response.get_json()[0]['items'][0]['id'] == 1
+    assert response.get_json()[1]['total_items'] == 1
+    assert response.get_json()[1]['items'][0]['id'] == 2
+
+
+def test_get_latest_items_success_desc_1limit_2page(client, login_helper):
+    url = '/categories/1/items'
+    help_creating_item('Item1', url, client, login_helper)
+    help_creating_item('Item2', url, client, login_helper)
+    help_creating_item('Item3', url, client, login_helper)
+    url = '/items?limit=1&page=2&order=desc'
+    response = client.get(url)
+    assert response.status_code == 200
+    assert response.get_json()[0]['total_items'] == 1
+    assert response.get_json()[0]['items'][0]['id'] == 3
+    assert response.get_json()[1]['total_items'] == 1
+    assert response.get_json()[1]['items'][0]['id'] == 2
+
+
+def test_get_latest_items_invalid_order(client):
+    url = '/items?limit=10&page=1&order=somethingwrong'
+    response = client.get(url)
+    assert response.status_code == 400
+    assert response.get_json() == {'message': 'Order parameter not recognized'}
+
+
+def test_get_latest_items_invalid_page(client, login_helper):
+    url = '/items?limit=10&page=-10&order=desc'
+    response = client.get(url)
+    assert response.status_code == 400
+    assert response.get_json() == {'message': 'limit and page must be positive'}
+
+
+def test_get_latest_items_invalid_limit(client, login_helper):
+    url = '/items?limit=-10&page=1&order=desc'
+    response = client.get(url)
+    assert response.status_code == 400
+    assert response.get_json() == {'message': 'limit and page must be positive'}
