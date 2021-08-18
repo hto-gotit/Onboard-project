@@ -77,11 +77,3 @@ class ItemModel(db.Model):
     def delete_from_db(self):
         db.session.delete(self)             # delete the item from database
         db.session.commit()                 # commit changes
-
-        # return json with item id, name, description, id of category
-        # and of user, created and updated date.
-        # def json(self):
-        #     return {'id': self.id, 'name': self.name,
-        #             'description': self.description,
-        #             'category_id': self.category_id, 'user_id': self.user_id,
-        #             'create': str(self.created), 'update': str(self.updated)}
