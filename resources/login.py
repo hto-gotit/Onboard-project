@@ -1,7 +1,7 @@
 # needed jwt functions
 from flask_jwt_extended import create_access_token
-# resource from restful
-from flask_restful import Resource
+# resource and errors handling from restful
+from flask_restful import Resource, abort
 
 # user model
 from models.users import UserModel
@@ -24,4 +24,4 @@ class UserLogin(Resource):
                                                fresh=True)
             return {'access_token': access_token}, 200
         # Otherwise, password is wrong
-        return {'message': 'Invalid username or password'}, 400
+        abort(400, description='Invalid username or password')
