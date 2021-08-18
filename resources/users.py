@@ -1,5 +1,5 @@
-# resource from restful
-from flask_restful import Resource
+# resource and errors handling from restful
+from flask_restful import Resource, abort
 
 # model for user
 from models.users import UserModel
@@ -15,31 +15,11 @@ class UserRegister(Resource):
     def post(cls, data):
         if UserModel.find_by_username(data['username']):
             # if username already existed, return 400
-            return {'message': 'Username already exists'}, 400
+            abort(400, description='Username already exists')
 
         # username available, create a new user
         user = UserModel(data['username'], data['password'])
-        user.save_to_db()        # save the user to the database
+        # save the user to the database
+        user.save_to_db()        
 
         return {'message': 'User created successfully'}, 201
-
-
-# /user/user_id resource (Not available to users)
-# class User(Resource):
-#     # Function to get id and username of an user
-#     @classmethod
-#     def get(cls, user_id):
-#         user = UserModel.find_by_id(user_id)
-#         if not user:
-#             return {'message': 'User not found!'}, 404
-#         user_schema = UserSchema()
-#         return user_schema.dump(user)
-#
-#     # Function to delete an user
-#     @classmethod
-#     def delete(cls, user_id):
-#         user = UserModel.find_by_id(user_id)
-#         if not user:
-#             return {'message': 'User not found!'}, 404
-#         user.delete_from_db()
-#         return {'message': 'User successfully deleted.'}, 200
