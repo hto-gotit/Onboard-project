@@ -11,21 +11,12 @@ from db import db
 
 from resources.users import UserRegister
 from resources.login import UserLogin
-from config import config_test
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def client():
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] \
-        = 'mysql+pymysql://{}:{}@{}/{}'.format(config_test.mySQLusername,
-                                               config_test.mySQLpassword,
-                                               config_test.host,
-                                               config_test.dbname)
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] \
-        = config_test.trackModification
-    app.config['TESTING'] = True
-    app.secret_key = config_test.secretKey
+    app.config.from_envvar('ENV')
     client = app.test_client()
     db.init_app(app)
     with app.app_context():
@@ -39,74 +30,59 @@ def client():
     return client
 
 
+def help_user(username, password, url, client):
+    response = client.post(url,
+                           data=json.dumps(dict(username=username,
+                                                password=password)),
+                           content_type='application/json')
+    return response
+
+
 def test_register_user_success(client):
     url = '/users'
-    response = client.post(url,
-                           data=json.dumps(dict(username='user1',
-                                                password='pass1')),
-                           content_type='application/json')
+    response = help_user('user1', 'pass1', url, client)
+    # response = client.post(url,
+    #                        data=json.dumps(dict(username='user1',
+    #                                             password='pass1')),
+    #                        content_type='application/json')
     assert response.get_json() == {'message': 'User created successfully'}
     assert response.status_code == 201
 
 
 def test_register_user_duplicate_name(client):
     url = '/users'
-    response = client.post(url,
-                           data=json.dumps(dict(username='user1',
-                                                password='pass1')),
-                           content_type='application/json')
+    response = help_user('user1', 'pass1', url, client)
     assert response.status_code == 201
-    response = client.post(url,
-                           data=json.dumps(dict(username='user1',
-                                                password='pass1')),
-                           content_type='application/json')
+    response = help_user('user1', 'pass1', url, client)
     assert response.status_code == 400
-    assert response.get_json() == {'message': 'Username already exists'}
+    assert response.get_json()['description'] == 'Username already exists'
 
 
 def test_login_success(client):
     url = '/users'
-    response = client.post(url,
-                           data=json.dumps(dict(username='user1',
-                                                password='pass1')),
-                           content_type='application/json')
+    response = help_user('user1', 'pass1', url, client)
     assert response.status_code == 201
     url2 = '/auth/login'
-    response = client.post(url2,
-                           data=json.dumps(dict(username='user1',
-                                                password='pass1')),
-                           content_type='application/json')
+    response = help_user('user1', 'pass1', url2, client)
     assert 'access_token' in response.get_json()
     assert response.status_code == 200
 
 
 def test_login_invalid_username(client):
     url = '/users'
-    response = client.post(url,
-                           data=json.dumps(dict(username='user1',
-                                                password='pass1')),
-                           content_type='application/json')
+    response = help_user('user1', 'pass1', url, client)
     assert response.status_code == 201
     url2 = '/auth/login'
-    response = client.post(url2,
-                           data=json.dumps(dict(username='user1111',
-                                                password='pass1')),
-                           content_type='application/json')
-    assert response.get_json() == {'message': 'Invalid username or password'}
+    response = help_user('user1111', 'pass1', url2, client)
+    assert response.get_json()['description'] == 'Invalid username or password'
     assert response.status_code == 400
 
 
 def test_login_invalid_password(client):
     url = '/users'
-    response = client.post(url,
-                           data=json.dumps(dict(username='user1',
-                                                password='pass1')),
-                           content_type='application/json')
+    response = help_user('user1', 'pass1', url, client)
     assert response.status_code == 201
     url2 = '/auth/login'
-    response = client.post(url2,
-                           data=json.dumps(dict(username='user1',
-                                                password='wrongpass')),
-                           content_type='application/json')
-    assert response.get_json() == {'message': 'Invalid username or password'}
+    response = help_user('user1', 'wrongpassword', url2, client)
+    assert response.get_json()['description'] == 'Invalid username or password'
     assert response.status_code == 400
