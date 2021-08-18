@@ -1,7 +1,6 @@
 import pytest
 from flask_restful import Api
 
-import json
 from flask import Flask
 
 from models.users import UserModel
@@ -10,20 +9,12 @@ from models.categories import CategoryModel
 from db import db
 
 from resources.categories import CategoryList
-from config import config_test
 
 
-@pytest.fixture
+@pytest.fixture(autouse=True)
 def client():
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] \
-        = 'mysql+pymysql://{}:{}@{}/{}'.format(config_test.mySQLusername,
-                                               config_test.mySQLpassword,
-                                               config_test.host,
-                                               config_test.dbname)
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] \
-        = config_test.trackModification
-    app.config['TESTING'] = True
+    app.config.from_envvar('ENV')
 
     client = app.test_client()
     db.init_app(app)
