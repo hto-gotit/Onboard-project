@@ -1,5 +1,5 @@
-# flask request
-from flask import request
+# resource and errors handling from restful
+from flask import request, abort
 # resource from restful
 from flask_restful import Resource
 # needed jwt functions
@@ -12,7 +12,7 @@ from models.categories import CategoryModel
 # schema for item
 from schemas.items import ItemSchema
 # decorator for validating request
-from utilities import item_request_validate
+from utilities import item_request_validate_put, item_request_validate_post
 
 
 # /categories/<category_id>/items/<item_id> resource
@@ -21,14 +21,13 @@ class Item(Resource):
     @classmethod
     def get(cls, category_id, item_id):
         if not CategoryModel.find_by_id(category_id):
-            # return 404 if item's category not found
-            return {'message': 'There is no such category'}, 404
+            # return 404 if category is not found
+            abort(404)
         # find the item in the database
         item = ItemModel.find_by_id(item_id)
         if item is None or item.category_id != category_id:
-            # return 404 if item itself is not found
-            return {'message': 'Item does not exist'}, 404
-
+            # return 404 if category is not found
+            abort(404)
         # declare schema for item
         item_schema = ItemSchema()
         # if item is found, return info of the item
@@ -39,20 +38,21 @@ class Item(Resource):
     def delete(self, category_id, item_id):
         if not CategoryModel.find_by_id(category_id):
             # return 404 if item's category not found
-            return {'message': 'There is no such category'}, 404
+            abort(404)
 
         # find the item in the database
         item = ItemModel.find_by_id(item_id)
         if item is None or item.category_id != category_id:
             # return 404 if item itself is not found
-            return {'message': 'Item does not exist'}, 404
+            abort(404)
 
         # fetch the person requesting the resource
         user_id = get_jwt_identity()
 
         # if the requesting user is not creator of item
         if item.user_id != user_id:
-            return {'message': 'not creator'}, 403      # return forbidden
+            # return forbidden
+            abort(403)
             # if user is creator, then delete the item
         item.delete_from_db()
         # return success message
@@ -60,17 +60,17 @@ class Item(Resource):
 
     # Function to edit an item, jwt is required
     @jwt_required()
-    @item_request_validate
+    @item_request_validate_put
     def put(self, category_id, item_id, data, item_schema):
         if not CategoryModel.find_by_id(category_id):
             # return 404 if item's category not found
-            return {'message': 'There is no such category'}, 404
+            abort(404)
 
         # find the item in the database
         item = ItemModel.find_by_id(item_id)
         if item is None or item.category_id != category_id:
             # return 404 if item itself is not found
-            return {'message': 'Item does not exist'}, 404
+            abort(404)
 
         # fetch the person requesting the resource
         user_id = get_jwt_identity()
@@ -78,12 +78,12 @@ class Item(Resource):
         if data['category_id'] != category_id:
             if ItemModel.find_by_category_and_name(data['category_id'],
                                                    data['name']):
-                return {'message': 'Item name already exists '
-                                   'in destination category'}, 400
+                abort(400, description='Item name already exists '
+                                       'in destination category')
 
         # check if the requesting user is the item creator, if not return 403
         if user_id != item.user_id:
-            return {'message': 'Not item creator, cannot edit item'}, 403
+            abort(403)
         else:
             # user is the item creator, modify items according to the request
             item.name = data['name']
@@ -104,7 +104,7 @@ class CategoryItems(Resource):
         category = CategoryModel.find_by_id(category_id)
         if category is None:
             # if category is not found, return 404
-            return {'message': 'Category does not exist'}, 404
+            abort(404)
         # get the items list of the category
         items_list = category.items
         # declare schemas for the items
@@ -114,14 +114,14 @@ class CategoryItems(Resource):
 
     # Function to create a new item, user needs to login to do so
     @jwt_required()
-    @item_request_validate
+    @item_request_validate_post
     def post(self, category_id, data, item_schema):
         category = CategoryModel.find_by_id(category_id)
         if not category:
-            return {'message': 'There is no such category'}, 404
+            abort(404)
         user_id = get_jwt_identity()       # Get the id of the requesting user
         if ItemModel.find_by_category_and_name(category_id, data['name']):
-            return {'message': 'Item name already exists in category'}, 400
+            abort(400)
 
         item_name = data['name']
         if 'description' in data:
@@ -149,7 +149,7 @@ class AllItems(Resource):
             limit = int(args['limit'])
             page = int(args['page'])
             if limit < 0 or page < 0:
-                return {'message': 'limit and page must be positive'}, 400
+                abort(400, description='limit and page must be positive')
             order = args['order']
             pages_list = []
             for i in range(page):
@@ -164,4 +164,4 @@ class AllItems(Resource):
             return pages_list
         else:
             # return 400 otherwise
-            return {'message': 'Order parameter not recognized'}, 400
+            abort(400, description='Order parameter not recognized')
