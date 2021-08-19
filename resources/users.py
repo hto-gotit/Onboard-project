@@ -1,25 +1,28 @@
 # resource and errors handling from restful
-from flask_restful import Resource, abort
+from flask_restful import Resource
 
 # model for user
 from models.users import UserModel
+# user schema
+from schemas.users import UserSchema
 # decorator for validating request
-from utilities import user_request_validate
+from utilities import validate
+# custom errors
+from errors import UsernameAlreadyExists
 
 
 # /users resource, used only for registering a new user
 class UserRegister(Resource):
     # Function to create a new user
     @classmethod
-    @user_request_validate
+    @validate(UserSchema())
     def post(cls, data):
         if UserModel.find_by_username(data['username']):
-            # if username already existed, return 400
-            abort(400, description='Username already exists')
+            raise UsernameAlreadyExists()
 
         # username available, create a new user
         user = UserModel(data['username'], data['password'])
         # save the user to the database
-        user.save_to_db()        
+        user.save_to_db()
 
         return {'message': 'User created successfully'}, 201
