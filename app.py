@@ -51,7 +51,7 @@ def expired_token_callback(jwt_header, jwt_payload):
 
 
 @jwt.unauthorized_loader
-def unauthorized_token_callback(jwt_header, jwt_payload):
+def unauthorized_token_callback(jwt_header):
     return {'message': 'You are not logged in'}, 401
 
 
