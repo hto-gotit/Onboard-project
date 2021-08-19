@@ -61,12 +61,13 @@ class ItemModel(db.Model):
 
     # find all of the items
     @classmethod
-    def find_all(cls, limit, skip, order):
+    def find_all(cls, limit, offset, order):
         if order == 'asc':
-            return cls.query.offset(skip).limit(limit).all()
+            return cls.query.order_by(db.asc(cls.id))\
+                .offset(offset).limit(limit)
         elif order == 'desc':
-            return cls.query.order_by(db.text('-id')).\
-                offset(skip).limit(limit).all()
+            return cls.query.order_by(db.desc(cls.id)).\
+                offset(offset).limit(limit)
 
     # save item to database
     def save_to_db(self):
