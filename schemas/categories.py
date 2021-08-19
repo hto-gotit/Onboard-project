@@ -12,9 +12,6 @@ class CategorySchema(Schema):
     # function to validate the name of the category
     @validates("name")
     def validate_username(self, value):
-        # name must be a string
-        if type(value) != str:
-            raise ValidationError("Category name must be a string.")
         # name length must be in the range of [1,19]
         if len(value) < 1:
             raise ValidationError("Category name's length must be > 0.")
