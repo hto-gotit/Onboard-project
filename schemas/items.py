@@ -21,8 +21,6 @@ class ItemSchema(Schema):
     @validates("name")
     def validate_name(self, value):
         # Item's name must be a string with length in range [1,49]
-        if type(value) != str:
-            raise ValidationError("Item name must be a string.")
         if len(value) < 1:
             raise ValidationError("Length of Item name must be > 0.")
         if len(value) > 49:
@@ -31,16 +29,35 @@ class ItemSchema(Schema):
             raise ValidationError("Item name cannot have space in the "
                                   "beginning and the end")
 
-    # Function to validate the description of the item
-    @validates("description")
-    def validate_description(self, value):
-        # The description must be a string
-        if type(value) != str:
-            raise ValidationError("Description must be a string.")
 
-    # Function to validate the id of the category the item belongs to
-    @validates("category_id")
-    def validate_category_id(self, value):
-        # The id must be an integer
-        if type(value) != int:
-            raise ValidationError("Category id must be an integer.")
+# Declare the Schema for arguments for finding latest Item, which consists of
+# limit, page, and order. Limit is the number of items in a page. Page is the
+# page number to get. Order is the ordering by item id to fetch from database.
+class LatestArgs(Schema):
+    # number of items per page
+    limit = fields.Integer(required=True)
+    # page number to get from
+    page = fields.Integer(required=True)
+    # ordering of the list to get from database
+    order = fields.String(required=True)
+
+    # Validate limit argument
+    @validates("limit")
+    def validate_limit(self, value):
+        # limit can only be positive
+        if value < 1:
+            raise ValidationError("Limit must be > 0.")
+
+    # Validate page argument
+    @validates("page")
+    def validate_page(self, value):
+        # page can only be positive
+        if value < 1:
+            raise ValidationError("Page must be > 0.")
+
+    # Validate order argument
+    @validates("order")
+    def validate_order(self, value):
+        # order can only be either asc or desc
+        if value != 'asc' and value != 'desc':
+            raise ValidationError("Order can only take values asc or desc")
