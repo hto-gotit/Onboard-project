@@ -39,8 +39,21 @@ app.register_error_handler(UsernameAlreadyExists, handle_custom_errors)
 app.register_error_handler(HTTPException, handle_http_exception)
 app.register_error_handler(Exception, default_handler)
 
+
 # Instantiate the JWT manager
 jwt = JWTManager(app)
+
+
+# JWT loaders for unauthorized
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return {'message': 'Your token has expired'}, 401
+
+
+@jwt.unauthorized_loader
+def unauthorized_token_callback(jwt_header, jwt_payload):
+    return {'message': 'You are not logged in'}, 401
+
 
 # Declare all the Resources for the API
 api.add_resource(CategoryList, '/categories')
