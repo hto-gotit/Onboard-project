@@ -48,6 +48,7 @@ def handle_http_exception(e):
     return {'message': e.description}, e.code
 
 
+# Handle jwt error where jwt header is missing
 def handle_missing_jwt(e):
     return {'message': 'You are not logged in'}, 401
 
