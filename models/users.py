@@ -20,11 +20,11 @@ class UserModel(db.Model):
     # password of the user
     password = db.Column(db.String(2048), nullable=False)
     # created date of the category
-    created = db.Column(db.DateTime(timezone=True),
+    created = db.Column(db.DateTime(),
                         server_default=db.func.now(),
                         nullable=False)
     # updated date of the category
-    updated = db.Column(db.DateTime(timezone=True),
+    updated = db.Column(db.DateTime(),
                         server_default=db.func.now(),
                         onupdate=db.func.now(),
                         nullable=False)
