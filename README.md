@@ -49,7 +49,7 @@ By default, the server will be started on port 5000 of localhost (e.g. http://12
 ## Tests:
 In order to run tests, first set the ENV variable to:
 ```
-$env:ENV = "..\config\testconfig.cfg"
+$env:ENV = "config\testconfig.cfg"
 ```
 Then, run the tests by doing:
 ```
