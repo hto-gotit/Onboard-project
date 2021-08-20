@@ -39,6 +39,7 @@ def validate(schema):
             if request.json:
                 data.update(request.json)
             data.update(request.args)
+            # validate the given data
             try:
                 data = schema.load(data)
             except ValidationError:
