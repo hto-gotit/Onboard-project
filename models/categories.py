@@ -17,11 +17,11 @@ class CategoryModel(db.Model):
     # name of the category
     name = db.Column(db.String(80), nullable=False, unique=True)
     # created date of the category
-    created = db.Column(db.DateTime(timezone=True),
+    created = db.Column(db.DateTime(),
                         server_default=db.func.now(),
                         nullable=False)
     # updated date of the category
-    updated = db.Column(db.DateTime(timezone=True),
+    updated = db.Column(db.DateTime(),
                         server_default=db.func.now(),
                         onupdate=db.func.now(),
                         nullable=False)
