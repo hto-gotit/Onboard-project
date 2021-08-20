@@ -1,9 +1,9 @@
 # Flask class & json functions
-from flask import Flask, json
+from flask import Flask
 # restful API
 from flask_restful import Api
 # JWT manager
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, exceptions
 # Http exceptions
 from werkzeug.exceptions import HTTPException
 
@@ -26,34 +26,16 @@ app.config.from_envvar('ENV')
 
 # Instantiate the API
 api = Api(app)
-
-# Register custom errors handler
-app.register_error_handler(CategoryDNE, handle_custom_errors)
-app.register_error_handler(ItemDNE, handle_custom_errors)
-app.register_error_handler(UserForbidden, handle_custom_errors)
-app.register_error_handler(ItemNameDuplicate, handle_custom_errors)
-app.register_error_handler(InvalidCredentials, handle_custom_errors)
-app.register_error_handler(UsernameAlreadyExists, handle_custom_errors)
-
-# Register HTTP errors handler and default error handler
-app.register_error_handler(HTTPException, handle_http_exception)
-app.register_error_handler(Exception, default_handler)
-
-
 # Instantiate the JWT manager
 jwt = JWTManager(app)
 
+# Register custom errors handler
+app.register_error_handler(ParentException, handle_custom_errors)
 
-# JWT loaders for unauthorized
-@jwt.expired_token_loader
-def expired_token_callback(jwt_header, jwt_payload):
-    return {'message': 'Your token has expired'}, 401
-
-
-@jwt.unauthorized_loader
-def unauthorized_token_callback(jwt_header):
-    return {'message': 'You are not logged in'}, 401
-
+# Register jwt, HTTP errors handler and default error handler
+app.register_error_handler(HTTPException, handle_http_exception)
+app.register_error_handler(exceptions.NoAuthorizationError, handle_missing_jwt)
+app.register_error_handler(Exception, default_handler)
 
 # Declare all the Resources for the API
 api.add_resource(CategoryList, '/categories')
