@@ -8,11 +8,12 @@ from models.items import ItemModel
 # model for category
 from models.categories import CategoryModel
 # schema for item
-from schemas.items import ItemSchema, LatestArgs
+from schemas.items import ItemSchemaPOST, ItemSchema, Pagination
 # decorator for validating request
 from utilities import validate
 # custom errors
-from errors import CategoryDNE, ItemDNE, UserForbidden, ItemNameDuplicate
+from errors import CategoryDoesNotExist, ItemDoesNotExist, \
+    UserForbidden, ItemNameDuplicate
 
 
 # /categories/<category_id>/items/<item_id> resource
@@ -22,12 +23,12 @@ class Item(Resource):
     def get(cls, category_id, item_id):
         if not CategoryModel.find_by_id(category_id):
             # return 404 if category is not found
-            raise CategoryDNE()
+            raise CategoryDoesNotExist()
         # find the item in the database
         item = ItemModel.find_by_id(item_id)
         if item is None or item.category_id != category_id:
             # return 404 if category is not found
-            raise ItemDNE()
+            raise ItemDoesNotExist()
         # if item is found, return info of the item
         return ItemSchema().dump(item)
 
@@ -36,13 +37,13 @@ class Item(Resource):
     def delete(self, category_id, item_id):
         if not CategoryModel.find_by_id(category_id):
             # return 404 if item's category not found
-            raise CategoryDNE()
+            raise CategoryDoesNotExist()
 
         # find the item in the database
         item = ItemModel.find_by_id(item_id)
         if item is None or item.category_id != category_id:
             # return 404 if item itself is not found
-            raise ItemDNE()
+            raise ItemDoesNotExist()
 
         # if the requesting user is not creator of item
         if item.user_id != get_jwt_identity():
@@ -59,13 +60,13 @@ class Item(Resource):
     def put(self, data, category_id, item_id):
         if not CategoryModel.find_by_id(category_id):
             # return 404 if item's category not found
-            raise CategoryDNE()
+            raise CategoryDoesNotExist()
 
         # find the item in the database
         item = ItemModel.find_by_id(item_id)
         if item is None or item.category_id != category_id:
             # return 404 if item itself is not found
-            raise ItemDNE()
+            raise ItemDoesNotExist()
 
         if data['category_id'] != category_id:
             if ItemModel.find_by_category_and_name(data['category_id'],
@@ -75,11 +76,11 @@ class Item(Resource):
         # check if the requesting user is the item creator, if not return 403
         if item.user_id != get_jwt_identity():
             raise UserForbidden()
-        else:
-            # user is the item creator, modify items according to the request
-            item.name = data['name']
-            item.description = data['description']
-            item.category_id = data['category_id']
+
+        # user is the item creator, modify items according to the request
+        item.name = data['name']
+        item.description = data['description']
+        item.category_id = data['category_id']
 
         item.save_to_db()         # save changes to database
 
@@ -95,7 +96,7 @@ class CategoryItems(Resource):
         category = CategoryModel.find_by_id(category_id)
         if category is None:
             # if category is not found, return 404
-            raise CategoryDNE()
+            raise CategoryDoesNotExist()
         # get the items list of the category
         items_list = category.items
         # return the list of info of the items
@@ -103,24 +104,22 @@ class CategoryItems(Resource):
 
     # Function to create a new item, user needs to login to do so
     @jwt_required()
-    @validate(ItemSchema())
+    @validate(ItemSchemaPOST())
     def post(self, data, category_id):
         category = CategoryModel.find_by_id(category_id)
+        # return 404 if item's category not found
         if not category:
-            raise CategoryDNE()
-        if ItemModel.find_by_category_and_name(category_id,
-                                               data['name']):
+            raise CategoryDoesNotExist()
+        # return 400 ì item name already exists in given category
+        if ItemModel.find_by_category_and_name(category_id, data['name']):
             raise ItemNameDuplicate()
 
         item_name = data['name']
-        if 'description' in data:
-            item_desc = data['description']
-        else:
-            item_desc = ''
+        item_desc = data.get('description', '')
         # create an item with the data
         item = ItemModel(item_name, item_desc, category_id, get_jwt_identity())
-
-        item.save_to_db()              # save the created item to database
+        # save the created item to database
+        item.save_to_db()
         # return the info of the created item
         return ItemSchema().dump(item), 201
 
@@ -129,13 +128,16 @@ class CategoryItems(Resource):
 # get the latest (recently-added) items
 class AllItems(Resource):
     @classmethod
-    @validate(LatestArgs())
+    @validate(Pagination())
     def get(cls, data):
         # variables from arguments
         order = data['order']
         limit = int(data['limit'])
         page = int(data['page'])
-        offset = limit*(page-1)
+
+        offset = limit * (page - 1)
+
+        # get the items needed
         all_items = ItemSchema(many=True).dump(ItemModel.find_all(limit,
                                                                   offset,
                                                                   order))
