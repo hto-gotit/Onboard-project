@@ -5,6 +5,9 @@ from flask import request
 # class to raise error from validation in marshmallow
 from marshmallow import ValidationError
 
+# custom errors
+from errors import ValidateSchemaError
+
 
 # Function to hash a given password, using bcrypt hash functions
 def bcrypt_hash(password):
@@ -36,16 +39,10 @@ def validate(schema):
             if request.json:
                 data.update(request.json)
             data.update(request.args)
-            if 'category_id' in kwargs and 'category_id' not in data:
-                # take the category_id from url
-                category_id = kwargs['category_id']
-                # append category_id to body
-                data['category_id'] = category_id
-            # validate the request
             try:
                 data = schema.load(data)
             except ValidationError:
-                return {'message': 'Something is wrong in the request'}, 400
+                raise ValidateSchemaError()
             return func(requests, data, *args, **kwargs)
         return wrapper
     return validate_inner_func
