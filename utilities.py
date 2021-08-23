@@ -46,4 +46,4 @@ def validate(schema):
                 raise ValidateSchemaError()
             return func(requests, data, *args, **kwargs)
         return wrapper
-    return validate_inner_func
+    return validate_inner_func 
