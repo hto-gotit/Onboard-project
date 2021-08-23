@@ -2,7 +2,7 @@ import json
 import pytest
 
 
-def header_format(access_token):
+def authorization_header_format(access_token):
     return {"Authorization": "Bearer {}".format(access_token)}
 
 
@@ -11,7 +11,7 @@ def create_item(item_name, url, client, access_token, description='desc1'):
                            data=json.dumps(dict(name=item_name,
                                                 description=description)),
                            content_type='application/json',
-                           headers=header_format(access_token))
+                           headers=authorization_header_format(access_token))
     return response
 
 
@@ -22,13 +22,13 @@ def edit_item(item_name, category_id, url, client,
                                                description=description,
                                                category_id=category_id)),
                           content_type='application/json',
-                          headers=header_format(access_token))
+                          headers=authorization_header_format(access_token))
     return response
 
 
 def delete_item(url, client, access_token):
     response = client.delete(url,
-                             headers=header_format(access_token))
+                             headers=authorization_header_format(access_token))
     return response
 
 
