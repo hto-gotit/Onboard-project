@@ -42,7 +42,7 @@ $ alembic upgrade head
 Then, change the server information accordingly from the ".cfg" configuration files under config directory. \
 Then, set the environment variable ENV to select the running environment, for example:
 ```
-$ $env:ENV = "config\developconfig.cfg"
+$ $env:ENV = "config\develop.cfg"
 ```
 Then, run the application by running command:
 ```
@@ -53,7 +53,7 @@ By default, the server will be started on port 5000 of localhost (e.g. http://12
 ## Tests:
 In order to run tests, first set the ENV variable to:
 ```
-$env:ENV = "config\testconfig.cfg"
+$env:ENV = "config\test.cfg"
 ```
 Then, run the tests by doing:
 ```
