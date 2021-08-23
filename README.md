@@ -12,13 +12,17 @@ Then, in order to create the tables, the application will be using alembic. To s
 $ alembic init alembic
 ```
 This will create an alembic directory to hold migration information and an alembic.ini file. Go to the alembic.ini file, and change
-sqlalchemy.url to the url of the database in use. Then, to start an initial migration, do:
+sqlalchemy.url to the url of the database in use. Then, to start an initial migration, add these codes into env.py under alembic directory:
 ```
-from models.categories import CategoryModel
-from models.items import ItemModel
-from models.users import UserModel
+from models.category import CategoryModel
+from models.item import ItemModel
+from models.user import UserModel
 from db import db
 target_metadata = db.metadata
+```
+Then, run an initial autogenerate migration:
+```
+alembic revision --autogenerate
 ```
 Afterwards, you can create some default category by going to the first version (.py file under versions directory in alembic directory) and in the upgrade function,
 add some default category, for example: let category_table = op.create_table('category', sa.Column...), then do:
