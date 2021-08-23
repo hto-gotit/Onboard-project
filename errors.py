@@ -1,39 +1,39 @@
-class ParentException(Exception):
+class CatalogException(Exception):
     pass
 
 
-class CategoryDoesNotExist(ParentException):
+class CategoryDoesNotExist(CatalogException):
     code = 404
     message = 'Category not found'
 
 
-class ItemDoesNotExist(ParentException):
+class ItemDoesNotExist(CatalogException):
     code = 404
     message = 'Item not found'
 
 
-class ItemNameDuplicate(ParentException):
+class ItemNameDuplicate(CatalogException):
     code = 400
     message = 'Item name already exists in destination category'
 
 
-class InvalidCredentials(ParentException):
+class InvalidCredentials(CatalogException):
     code = 400
     message = 'Invalid username or password'
 
 
-class UsernameAlreadyExists(ParentException):
+class UsernameAlreadyExists(CatalogException):
     code = 400
     message = 'Username already exists'
 
 
-class UserForbidden(ParentException):
+class UserForbidden(CatalogException):
     code = 403
     message = 'User is forbidden to perform this action ' \
               '(user is not item creator)'
 
 
-class ValidateSchemaError(ParentException):
+class ValidateSchemaError(CatalogException):
     code = 400
     message = 'Something is wrong in the request'
 
@@ -54,5 +54,5 @@ def handle_missing_jwt(e):
 
 
 # Handle all Exceptions
-def default_handler(*args, **kwargs):
+def default_handler(e):
     return {'message': 'Internal Server Error'}, 500
