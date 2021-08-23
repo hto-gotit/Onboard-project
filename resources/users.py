@@ -2,7 +2,7 @@
 from flask_restful import Resource
 
 # model for user
-from models.users import UserModel
+from models.user import UserModel
 # user schema
 from schemas.users import UserSchema
 # decorator for validating request
@@ -21,8 +21,8 @@ class UserRegister(Resource):
             raise UsernameAlreadyExists()
 
         # username available, create a new user
-        user = UserModel(data['username'], data['password'])
-        # save the user to the database
+        user = UserModel(username=data['username'],
+                         hash_password=data['password'])
         user.save_to_db()
 
         return {'message': 'User created successfully'}, 201
