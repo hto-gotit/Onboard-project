@@ -30,7 +30,7 @@ api = Api(app)
 jwt = JWTManager(app)
 
 # Register custom errors handler
-app.register_error_handler(ParentException, handle_custom_errors)
+app.register_error_handler(CatalogException, handle_custom_errors)
 
 # Register jwt, HTTP errors handler and default error handler
 app.register_error_handler(HTTPException, handle_http_exception)
