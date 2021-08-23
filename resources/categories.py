@@ -2,7 +2,7 @@
 from flask_restful import Resource
 
 # model of category
-from models.categories import CategoryModel
+from models.category import CategoryModel
 # schema of category
 from schemas.categories import CategorySchema
 
