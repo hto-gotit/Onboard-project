@@ -14,7 +14,7 @@ def bcrypt_hash(password):
     # Encode the raw password
     pass_bytes = password.encode()
     # Hash the encoded and use a generated salt
-    pass_hash_bytes = bcrypt.hashpw(pass_bytes, bcrypt.gensalt(14))
+    pass_hash_bytes = bcrypt.hashpw(pass_bytes, bcrypt.gensalt(4))
     # return hashed password
     return pass_hash_bytes.decode()
 
