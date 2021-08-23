@@ -40,14 +40,6 @@ class ItemModel(db.Model):
     # relationship declaration with user
     user = db.relationship('UserModel')
 
-    # initialization function
-    def __init__(self, name, description, category_id, user_id):
-        # set name, description, category, user_id as given
-        self.name = name
-        self.description = description
-        self.category_id = category_id
-        self.user_id = user_id
-
     # find the item object by (unique) id
     @classmethod
     def find_by_id(cls, item_id):
