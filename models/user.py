@@ -1,6 +1,5 @@
 # SQLAlchemy
 from db import db
-from sqlalchemy.ext.hybrid import hybrid_property
 # function to encrypt given password
 from utilities import bcrypt_hash
 
