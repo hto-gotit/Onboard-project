@@ -1,4 +1,4 @@
-def test_get_categories(client):
+def test_get_all_categories(client):
     expected = [
         {
             "id": 1,
