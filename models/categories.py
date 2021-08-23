@@ -11,7 +11,8 @@ from db import db
 # For this project, the categories will be hard-coded into the database
 # and cannot be manipulated by users.
 class CategoryModel(db.Model):
-    __tablename__ = 'category'      # initialize the table
+    # initialize the table
+    __tablename__ = 'category'
     # id of the category
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     # name of the category
@@ -27,10 +28,6 @@ class CategoryModel(db.Model):
                         nullable=False)
     # items belonging to the category
     items = db.relationship('ItemModel', lazy='dynamic')
-
-    # initialization function
-    def __init__(self, name):
-        self.name = name            # set name as given
 
     # find the category by (unique) id
     @classmethod
