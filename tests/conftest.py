@@ -4,7 +4,7 @@ import os
 import random
 import string
 
-from models.categories import CategoryModel
+from models.category import CategoryModel
 from db import db
 from app import app
 
@@ -17,8 +17,8 @@ def application():
     with app.app_context():
         db.drop_all()
         db.create_all()
-        CategoryModel("First category").save_to_db()
-        CategoryModel("Second category").save_to_db()
+        CategoryModel(name="First category").save_to_db()
+        CategoryModel(name="Second category").save_to_db()
     return app
 
 
