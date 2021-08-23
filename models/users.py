@@ -1,5 +1,6 @@
 # SQLAlchemy
 from db import db
+from sqlalchemy.ext.hybrid import hybrid_property
 # function to encrypt given password
 from utilities import bcrypt_hash
 
@@ -12,7 +13,8 @@ from utilities import bcrypt_hash
 # Created is the date the user was created
 # Updated date is the latest time when the user data was updated
 class UserModel(db.Model):
-    __tablename__ = 'user'      # initialize table
+    # initialize table
+    __tablename__ = 'user'
     # generated id of the user
     id = db.Column(db.Integer, primary_key=True, nullable=False)
     # the username chosen by the user
@@ -31,10 +33,13 @@ class UserModel(db.Model):
     # items that the user created
     items = db.relationship('ItemModel', lazy='dynamic')
 
-    # initialization function
-    def __init__(self, username, password):
-        self.username = username                    # set username
-        self.password = bcrypt_hash(password)       # hash and set password
+    @property
+    def hash_password(self):
+        return self.password
+
+    @hash_password.setter
+    def hash_password(self, password):
+        self.password = bcrypt_hash(password)
 
     # find the user object by (unique) username
     @classmethod
