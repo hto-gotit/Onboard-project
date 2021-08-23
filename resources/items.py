@@ -4,11 +4,11 @@ from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 # model for item
-from models.items import ItemModel
+from models.item import ItemModel
 # model for category
-from models.categories import CategoryModel
+from models.category import CategoryModel
 # schema for item
-from schemas.items import ItemSchemaPOST, ItemSchema, Pagination
+from schemas.items import CreateItemSchema, ItemSchema, PaginationSchema
 # decorator for validating request
 from utilities import validate
 # custom errors
@@ -104,7 +104,7 @@ class CategoryItems(Resource):
 
     # Function to create a new item, user needs to login to do so
     @jwt_required()
-    @validate(ItemSchemaPOST())
+    @validate(CreateItemSchema())
     def post(self, data, category_id):
         category = CategoryModel.find_by_id(category_id)
         # return 404 if item's category not found
@@ -117,7 +117,10 @@ class CategoryItems(Resource):
         item_name = data['name']
         item_desc = data.get('description', '')
         # create an item with the data
-        item = ItemModel(item_name, item_desc, category_id, get_jwt_identity())
+        item = ItemModel(name=item_name,
+                         description=item_desc,
+                         category_id=category_id,
+                         user_id=get_jwt_identity())
         # save the created item to database
         item.save_to_db()
         # return the info of the created item
@@ -128,7 +131,7 @@ class CategoryItems(Resource):
 # get the latest (recently-added) items
 class AllItems(Resource):
     @classmethod
-    @validate(Pagination())
+    @validate(PaginationSchema())
     def get(cls, data):
         # variables from arguments
         order = data['order']
